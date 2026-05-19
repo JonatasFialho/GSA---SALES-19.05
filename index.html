@@ -632,9 +632,10 @@
                                     <tr>
                                         <th class="ps-4">Posição</th>
                                         <th style="cursor: pointer;" onclick="sortSupTable(0)">Supervisor <i class="fas fa-sort ms-1"></i></th>
-                                        <th style="cursor: pointer;" onclick="sortSupTable(1)" class="text-end">Positivação Geral <i class="fas fa-sort ms-1"></i></th>
-                                        <th style="cursor: pointer;" onclick="sortSupTable(2)" class="text-end">Volume Geral <i class="fas fa-sort ms-1"></i></th>
-                                        <th style="cursor: pointer;" onclick="sortSupTable(3)" class="text-end pe-4">Sell Out Geral (R$) <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(1)" class="text-end">Clientes Ativos <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(2)" class="text-end">Positivação Geral <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(3)" class="text-end">Volume Geral <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(4)" class="text-end pe-4">Sell Out Geral (R$) <i class="fas fa-sort ms-1"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-supervisores-body"></tbody>
@@ -1245,7 +1246,8 @@
             let secaoRaw = String(normRow['SEÇÃO'] || normRow['SECAO'] || '').toUpperCase().trim();
 
             let codCli = String(normRow['CODCLI'] || normRow['CLIENTE'] || normRow['CNPJ'] || normRow['COD_CLIENTE'] || '').replace(/\uFFFD/g, '').trim();
-            let qtCliAtvStr = String(normRow['QTCLIATV'] || normRow['QT_CLI_ATV'] || normRow['CC'] || '0').replace(/\./g, '').replace(',', '.');
+            // Priorizar a coluna "CA" conforme solicitado para a planilha 8108
+            let qtCliAtvStr = String(normRow['CA'] || normRow['QTCLIATV'] || normRow['QT_CLI_ATV'] || normRow['CC'] || '0').replace(/\./g, '').replace(',', '.');
             let qtCliAtvNum = parseFloat(qtCliAtvStr) || 0;
             let supervisor = String(normRow['SUPERVISOR'] || normRow['COORDENADOR'] || normRow['GERENTE'] || 'N/I').replace(/\uFFFD/g, '').trim();
             let vendedor = String(normRow['VENDEDOR'] || normRow['RCA'] || normRow['REP'] || 'N/I').replace(/\uFFFD/g, '').trim();
@@ -1257,11 +1259,16 @@
             if (upName.includes('VENDID')) tipoVenda = 'VENDIDO';
             else if (upName.includes('FATURAD')) tipoVenda = 'FATURADO';
 
+            // Extração de CODRCA e CODVEND para relacionamento
+            let codRca = String(normRow['CODRCA'] || '').trim();
+            let codVend = String(normRow['CODVEND'] || '').trim();
+
             return { 
                 VLFAT_NUM: vlFat, QTD_NUM: qtdNum, QTD_CX_NUM: qtdCxNum, MES_EXTRATO: mesAno, 
                 DEPT_NORM: deptRaw, CODCLI: codCli, SUPERVISOR: supervisor,
                 VENDEDOR: vendedor, CIDADE: cidade, PRODUTO_NOME: prod,
-                SECAO_NORM: secaoRaw, TIPO_VENDA: tipoVenda, FILENAME: fileName, QTCLIATV_NUM: qtCliAtvNum
+                SECAO_NORM: secaoRaw, TIPO_VENDA: tipoVenda, FILENAME: fileName, QTCLIATV_NUM: qtCliAtvNum,
+                CODRCA: codRca, CODVEND: codVend
             };
         }
 
@@ -2177,8 +2184,8 @@
 
         // ================= Tabela de Supervisores =================
         let tableSupData = [];
-        let sortSupDirections = [1, 1, 1, 1];
-        let currentTotSupClientes = 0, currentTotSupVol = 0, currentTotSupSell = 0;
+        let sortSupDirections = [1, 1, 1, 1, 1];
+        let currentTotSupClientesAtivos = 0, currentTotSupClientes = 0, currentTotSupVol = 0, currentTotSupSell = 0;
 
         function renderSupervisoresTable() {
             // Lógica de Título Dinâmico Refinada
@@ -2203,36 +2210,86 @@
             }
 
             const mapSups = new Map();
-            const totalClientes = new Set();
+            const totalClientesSet = new Set();
             currentTotSupVol = 0;
             currentTotSupSell = 0;
 
+            // 1. Identificar o último mês disponível nos dados globais de vendas
+            const mesesDisponiveis = [...new Set(globalData.filter(r => r.MES_EXTRATO !== '00').map(r => r.MES_EXTRATO))].sort();
+            const ultimoMes = mesesDisponiveis.length > 0 ? mesesDisponiveis[mesesDisponiveis.length - 1] : null;
+
+            // 2. Mapear Vendedores ATIVOS (com venda no último mês) por Supervisor
+            const supToActiveVendors = new Map();
+            if (ultimoMes) {
+                globalData.filter(row => row.MES_EXTRATO === ultimoMes && row.VLFAT_NUM > 0).forEach(row => {
+                    const sup = row.SUPERVISOR;
+                    if (!supToActiveVendors.has(sup)) supToActiveVendors.set(sup, new Set());
+                    if (row.CODRCA) supToActiveVendors.get(sup).add(row.CODRCA);
+                    if (row.CODVEND) supToActiveVendors.get(sup).add(row.CODVEND);
+                });
+            }
+
+            // 3. Calcular Clientes Ativos da planilha 8108 apenas para os vendedores ativos
+            const data8108 = globalData.filter(row => row.FILENAME.startsWith('8108'));
+            const todosSupervisores = [...new Set(globalData.map(r => r.SUPERVISOR))];
+
+            todosSupervisores.forEach(sup => {
+                let supClientesAtivos = 0;
+                const activeVendors = supToActiveVendors.get(sup) || new Set();
+
+                if (activeVendors.size > 0) {
+                    data8108.forEach(row => {
+                        const matchRca = row.CODRCA && activeVendors.has(row.CODRCA);
+                        const matchVend = row.CODVEND && activeVendors.has(row.CODVEND);
+                        if (matchRca || matchVend) {
+                            supClientesAtivos += row.QTCLIATV_NUM;
+                        }
+                    });
+                }
+
+                mapSups.set(sup, { 
+                    sup: sup, 
+                    sellout: 0, 
+                    volume: 0, 
+                    clientesAtivos: supClientesAtivos 
+                });
+            });
+
+            // 3. Preencher Sellout e Volume dos dados filtrados
             filteredData.forEach(row => {
                 const sup = row.SUPERVISOR;
-                if (!mapSups.has(sup)) {
-                    mapSups.set(sup, { sup: sup, sellout: 0, volume: 0, clientes: new Set() });
+                if (mapSups.has(sup)) {
+                    const entry = mapSups.get(sup);
+                    entry.sellout += row.VLFAT_NUM;
+                    entry.volume += row.QTD_NUM;
                 }
-                const entry = mapSups.get(sup);
-                
-                entry.sellout += row.VLFAT_NUM;
-                entry.volume += row.QTD_NUM;
-                if (row.CODCLI) {
-                    entry.clientes.add(row.CODCLI);
-                    totalClientes.add(row.CODCLI);
-                }
-                
                 currentTotSupSell += row.VLFAT_NUM;
                 currentTotSupVol += row.QTD_NUM;
             });
 
-            currentTotSupClientes = totalClientes.size;
+            // Calcular Total Geral de Clientes Ativos (Soma dos supervisores)
+            currentTotSupClientesAtivos = Array.from(mapSups.values()).reduce((acc, curr) => acc + curr.clientesAtivos, 0);
 
-            tableSupData = Array.from(mapSups.values()).map(v => ({
-                sup: v.sup,
-                clientes: v.clientes.size,
-                volume: v.volume,
-                sellout: v.sellout
-            })).sort((a,b) => b.sellout - a.sellout);
+            // Calcular Total Geral de Positivação (Set de CODCLI)
+            const totalPositSet = new Set();
+            filteredData.forEach(row => { if(row.CODCLI) totalPositSet.add(row.CODCLI); });
+            currentTotSupClientes = totalPositSet.size;
+
+            tableSupData = Array.from(mapSups.values())
+                .filter(v => v.sellout > 0) // FILTRO: Apenas supervisores com venda no período
+                .map(v => {
+                    // Calcular Positivação por Supervisor
+                    const positSet = new Set();
+                    filteredData.filter(r => r.SUPERVISOR === v.sup).forEach(r => { if(r.CODCLI) positSet.add(r.CODCLI); });
+                    
+                    return {
+                        sup: v.sup,
+                        clientesAtivos: v.clientesAtivos,
+                        positivacao: positSet.size,
+                        volume: v.volume,
+                        sellout: v.sellout
+                    };
+                }).sort((a,b) => b.sellout - a.sellout);
 
             buildSupTableHTML();
         }
@@ -2252,7 +2309,8 @@
                 tr.innerHTML = `
                     <td class="ps-4 align-middle">${posBadge}</td>
                     <td class="align-middle fw-bold">${row.sup}</td>
-                    <td class="text-end align-middle">${formatNumber(row.clientes)}</td>
+                    <td class="text-end align-middle">${formatNumber(row.clientesAtivos)}</td>
+                    <td class="text-end align-middle">${formatNumber(row.positivacao)}</td>
                     <td class="text-end align-middle">${formatNumber(row.volume)}</td>
                     <td class="text-end fw-bold text-primary align-middle pe-4">${formatCurrency(row.sellout)}</td>
                 `;
@@ -2262,6 +2320,7 @@
             tfoot.innerHTML = `
                 <tr class="table-light fw-bold" style="font-size: 1.05rem;">
                     <td colspan="2" class="ps-4 text-end">TOTAL GERAL</td>
+                    <td class="text-end">${formatNumber(currentTotSupClientesAtivos)}</td>
                     <td class="text-end">${formatNumber(currentTotSupClientes)}</td>
                     <td class="text-end">${formatNumber(currentTotSupVol)}</td>
                     <td class="text-end text-primary pe-4">${formatCurrency(currentTotSupSell)}</td>
@@ -2270,7 +2329,7 @@
         }
 
         function sortSupTable(columnIndex) {
-            const keys = ['sup', 'clientes', 'volume', 'sellout'];
+            const keys = ['sup', 'clientesAtivos', 'positivacao', 'volume', 'sellout'];
             const key = keys[columnIndex];
             const dir = sortSupDirections[columnIndex];
             
