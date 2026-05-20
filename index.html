@@ -461,6 +461,12 @@
                         <i class="fas fa-map-marked-alt me-2"></i> Análise de Vendas por Cidade
                     </button>
                 </li>
+                <!-- NOVA ABA: METAS CATEGORIAS -->
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="metas-categorias-tab" data-bs-toggle="tab" data-bs-target="#metascategorias" type="button" role="tab" aria-controls="metascategorias" aria-selected="false">
+                        <i class="fas fa-tags me-2"></i> Metas Categorias
+                    </button>
+                </li>
             </ul>
 
             <div class="tab-content" id="myTabContent">
@@ -882,34 +888,62 @@
                 </div>
                 <!-- FIM DA NOVA ABA 4 -->
 
-            </div>
-        </div>
-    </div>
+                <!-- NOVA ABA 5: METAS CATEGORIAS -->
+                <div class="tab-pane fade" id="metascategorias" role="tabpanel" aria-labelledby="metas-categorias-tab">
+                    
+                    <div class="filter-section mb-4" style="overflow: visible !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-muted m-0"><i class="fas fa-filter me-1"></i> Filtros de Metas Categorias</h6>
+                        </div>
+                        <div class="row g-2 row-cols-2 row-cols-sm-3">
+                            <div class="col">
+                                <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem;">MÊS</label>
+                                <select class="form-select" id="mcat-filter-mes">
+                                    <option value="">Todos (Acumulado)</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem;">SUPERVISOR</label>
+                                <div id="mcat-filter-supervisor"></div>
+                            </div>
+                            <div class="col">
+                                <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem;">VENDEDOR</label>
+                                <div id="mcat-filter-vendedor"></div>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Modais -->
-    <div class="modal fade" id="modalVendedores" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-custom-width">
-            <div class="modal-content" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
-                <div class="modal-header align-items-center" style="border-bottom: 1px solid var(--border-color);">
-                    <h5 class="modal-title m-0" style="color: var(--text-dark); font-weight: bold;"><i class="fas fa-trophy me-2 text-warning"></i> Ranking Completo</h5>
-                    <div class="ms-auto d-flex gap-2 align-items-center">
-                        <button type="button" class="btn btn-sm btn-danger shadow-sm fw-bold" onclick="exportModalToPDF(event, 'vendedores')">
-                            <i class="fas fa-file-pdf me-1"></i> Gerar PDF
-                        </button>
-                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="table-custom-wrapper">
+                        <div class="chart-title mb-3 d-flex justify-content-between align-items-center">
+                            <span>Tabela Analítica para Categorias</span>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="exportMetasCategoriasToCSV('Metas_Categorias.csv')"><i class="fas fa-download"></i> CSV</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-custom" id="table-metas-categorias">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">Categoria</th>
+                                        <th class="text-end">Meta CX</th>
+                                        <th class="text-end">Real CX</th>
+                                        <th class="text-center">% CX</th>
+                                        <th class="text-end">Meta POS</th>
+                                        <th class="text-end">Real POS</th>
+                                        <th class="text-center">% POS</th>
+                                        <th class="text-end pe-4">Total R$</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-metas-categorias">
+                                    <tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-table fa-2x mb-2 d-block"></i>Carregue a planilha METAS CATEGORIAS para visualizar esta análise.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+
                 </div>
-                <div class="modal-body p-0" id="pdf-vendedores-container">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-custom m-0">
-                            <thead id="modal-vendedores-head"></thead>
-                            <tbody id="modal-vendedores-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                </div>
+                <!-- FIM DA NOVA ABA 5 -->
+
             </div>
         </div>
     </div>
@@ -1317,11 +1351,15 @@
                                 
                                 if (upperSheetName.includes('FINANC')) currentType = 'financeiro';
                                 else if (upperSheetName.includes('POSITIVA') || upperSheetName.includes('COBERTURA')) currentType = 'positivacao';
+                                else if (upperSheetName.includes('METAS-GERAIS') || upperSheetName === 'METAS GERAIS') currentType = 'metas_gerais';
                                 else if (upperName.includes('CATEGORIA') || upperSheetName.includes('CATEGORIA')) currentType = 'comparativo';
 
                                 if (currentType === 'comparativo') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     extractComparativo(jsonMatrix, true);
+                                } else if (currentType === 'metas_gerais') {
+                                    const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
+                                    extractMetasGerais(jsonMatrix);
                                 } else if (currentType !== 'vendas') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     processMetaFile(jsonMatrix, currentType);
@@ -1340,6 +1378,7 @@
                         let type = isGlobalMetaFile ? 'meta_desconhecida' : 'vendas';
                         if (upperName.includes('FINANC')) type = 'financeiro';
                         else if (upperName.includes('POSITIV') || upperName.includes('COBERTUR')) type = 'positivacao';
+                        else if (upperName.includes('METAS-GERAIS') || upperName.includes('METAS GERAIS')) type = 'metas_gerais';
                         else if (upperName.includes('CATEGORIA')) type = 'comparativo';
 
                         Papa.parse(fileData.content, {
@@ -1348,6 +1387,7 @@
                             dynamicTyping: false,
                             complete: function(results) {
                                 if (type === 'comparativo') extractComparativo(results.data, true);
+                                else if (type === 'metas_gerais') extractMetasGerais(results.data);
                                 else if (type !== 'vendas') processMetaFile(results.data, type);
                                 else globalData = globalData.concat(results.data.map(r => processRowData(r, fileData.name)));
                                 
@@ -1396,6 +1436,7 @@
                     let type = isGlobalMetaFile ? 'meta_desconhecida' : 'vendas';
                     if (upperName.includes('FINANC')) type = 'financeiro';
                     else if (upperName.includes('POSITIV') || upperName.includes('COBERTUR')) type = 'positivacao';
+                    else if (upperName.includes('METAS-GERAIS') || upperName.includes('METAS GERAIS')) type = 'metas_gerais';
                     else if (upperName.includes('CATEGORIA')) type = 'comparativo';
 
                     Papa.parse(file, {
@@ -1405,6 +1446,7 @@
                         encoding: "ISO-8859-1", 
                         complete: function(results) {
                             if (type === 'comparativo') extractComparativo(results.data, true);
+                            else if (type === 'metas_gerais') extractMetasGerais(results.data);
                             else if (type !== 'vendas') processMetaFile(results.data, type);
                             else globalData = globalData.concat(results.data.map(r => processRowData(r, file.name)));
                             filesProcessed++;
@@ -1430,11 +1472,15 @@
                                 
                                 if (upperSheetName.includes('FINANC')) currentType = 'financeiro';
                                 else if (upperSheetName.includes('POSITIVA') || upperSheetName.includes('COBERTURA')) currentType = 'positivacao';
+                                else if (upperSheetName.includes('METAS-GERAIS') || upperSheetName === 'METAS GERAIS') currentType = 'metas_gerais';
                                 else if (upperName.includes('CATEGORIA') || upperSheetName.includes('CATEGORIA')) currentType = 'comparativo';
 
                                 if (currentType === 'comparativo') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     extractComparativo(jsonMatrix, true);
+                                } else if (currentType === 'metas_gerais') {
+                                    const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
+                                    extractMetasGerais(jsonMatrix);
                                 } else if (currentType !== 'vendas') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     processMetaFile(jsonMatrix, currentType);
@@ -1608,6 +1654,9 @@
             
             populateCidFilters();
             renderAnaliseCidades();
+            
+            if (typeof populateMcatFilters === 'function') populateMcatFilters();
+            if (typeof renderMetasCategorias === 'function') renderMetasCategorias();
 
             document.getElementById('loading-overlay').style.display = 'none';
         }
@@ -3027,6 +3076,63 @@
         // SCRIPT: COMPARATIVO DE METAS (ANOS) - Agora global para sincronização automática
         // =========================================================================================
         
+        window.metasGeraisData = {};
+
+        function extractMetasGerais(rows) {
+            let headerIdx = -1;
+            for(let i=0; i<Math.min(rows.length, 15); i++) {
+                let r = rows[i] || [];
+                let str = r.map(c => String(c).toUpperCase().trim());
+                if (str.includes('CATEGORIA') && (str.includes('CX - JANEIRO') || str.some(h => h.includes('CX') && h.includes('JANEIRO')))) {
+                    headerIdx = i;
+                    break;
+                }
+            }
+
+            if (headerIdx === -1) return;
+
+            let hRow = rows[headerIdx].map(c => String(c).toUpperCase().trim());
+            let catIdx = hRow.findIndex(h => h === 'CATEGORIA' || h.includes('CATEGORIA'));
+            if (catIdx === -1) catIdx = 1; // Fallback para a coluna B
+            
+            const monthMapExt = {
+                '01': 'JANEIRO', '02': 'FEVEREIRO', '03': 'MARÇO', '04': 'ABRIL', 
+                '05': 'MAIO', '06': 'JUNHO', '07': 'JULHO', '08': 'AGOSTO', 
+                '09': 'SETEMBRO', '10': 'OUTUBRO', '11': 'NOVEMBRO', '12': 'DEZEMBRO'
+            };
+
+            let colMap = {};
+            for (let m in monthMapExt) {
+                let mName = monthMapExt[m];
+                let cxCol = hRow.findIndex(h => h.includes('CX') && (h.includes(mName) || h.includes(mName.replace('Ç','C'))));
+                let posCol = hRow.findIndex(h => h.includes('POS') && (h.includes(mName) || h.includes(mName.replace('Ç','C'))));
+                colMap[m] = { cx: cxCol, pos: posCol };
+            }
+
+            for(let i = headerIdx + 1; i < rows.length; i++) {
+                let r = rows[i] || [];
+                if (r.length === 0 || !r[catIdx]) continue;
+                let catName = String(r[catIdx]).toUpperCase().trim();
+                if (catName === '' || catName === 'FINANCEIRO' || catName === 'LEITURA' || catName.includes('TT CAIXA')) continue; 
+
+                if (!window.metasGeraisData[catName]) {
+                    window.metasGeraisData[catName] = {};
+                }
+
+                for (let m in colMap) {
+                    let cxVal = 0;
+                    let posVal = 0;
+                    if (colMap[m].cx !== -1 && r[colMap[m].cx] !== undefined) {
+                        cxVal = parseAndCleanNumComp(r[colMap[m].cx]);
+                    }
+                    if (colMap[m].pos !== -1 && r[colMap[m].pos] !== undefined) {
+                        posVal = parseAndCleanNumComp(r[colMap[m].pos]);
+                    }
+                    window.metasGeraisData[catName][m] = { cx: cxVal, pos: posVal };
+                }
+            }
+        }
+
         // Tratamento robusto de números vindos do Excel/CSV PT-BR
         function parseAndCleanNumComp(val) {
             if (val === undefined || val === null || String(val).trim() === '') return 0;
@@ -3168,6 +3274,7 @@
             selectCat.value = 'TOTAL GERAL';
 
             renderComparativo();
+            if (typeof renderMetasCategorias === 'function') renderMetasCategorias();
         }
 
         // Listeners para os filtros da aba comparativa
@@ -3712,6 +3819,164 @@
 
         function exportCidadesAnalysisToCSV(filename) {
             let csv = []; const rows = document.querySelectorAll("#table-analise-cidades tr");
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
+                csv.push(row.join(";"));
+            }
+            const csvFile = new Blob(["\uFEFF"+csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+            const downloadLink = document.createElement("a"); downloadLink.download = filename; downloadLink.href = window.URL.createObjectURL(csvFile); downloadLink.style.display = "none"; document.body.appendChild(downloadLink); downloadLink.click();
+        }
+
+        // ================= NOVA ABA: METAS CATEGORIAS =================
+        function createMcatCustomSelect(containerId, optionsArray) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = ''; container.classList.add('custom-multi-select');
+            let html = `<div class="select-btn"><span class="btn-text">Todos</span><i class="fas fa-chevron-down text-muted"></i></div><div class="dropdown-content"><div class="search-wrapper"><input type="text" placeholder="Pesquisar..."></div><div class="options-list"><label class="option-item"><input type="checkbox" value="" class="cb-todos" checked><span>Todos</span></label>${optionsArray.map(opt => `<label class="option-item item-row"><input type="checkbox" value="${opt}" class="cb-item"><span>${opt}</span></label>`).join('')}</div></div>`;
+            container.innerHTML = html;
+            const btn = container.querySelector('.select-btn'), dropdown = container.querySelector('.dropdown-content'), searchInput = container.querySelector('.search-wrapper input'), cbTodos = container.querySelector('.cb-todos'), cbItems = container.querySelectorAll('.cb-item'), itemRows = container.querySelectorAll('.item-row'), btnText = container.querySelector('.btn-text');
+            btn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.custom-multi-select.active').forEach(el => { if (el !== container) el.classList.remove('active'); }); container.classList.toggle('active'); if (container.classList.contains('active')) { searchInput.value = ''; itemRows.forEach(row => row.style.display = 'flex'); setTimeout(() => searchInput.focus(), 100); } });
+            dropdown.addEventListener('click', e => e.stopPropagation());
+            searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase(); itemRows.forEach(row => { const text = row.querySelector('span').textContent.toLowerCase(); row.style.display = text.includes(term) ? 'flex' : 'none'; }); });
+            cbTodos.addEventListener('change', () => { if (cbTodos.checked) { cbItems.forEach(cb => cb.checked = false); btnText.textContent = 'Todos'; } else { let temAlgoMarcado = Array.from(cbItems).some(cb => cb.checked); if (!temAlgoMarcado) cbTodos.checked = true; } renderMetasCategorias(); });
+            cbItems.forEach(cb => { cb.addEventListener('change', () => { const checkedItems = Array.from(cbItems).filter(i => i.checked); if (checkedItems.length > 0) cbTodos.checked = false; else cbTodos.checked = true; if (cbTodos.checked) btnText.textContent = 'Todos'; else if (checkedItems.length === 1) btnText.textContent = checkedItems[0].nextElementSibling.textContent; else btnText.textContent = `${checkedItems.length} selecionados`; renderMetasCategorias(); }); });
+        }
+
+        function populateMcatFilters() {
+            const meses = [...new Set(globalData.map(d => d.MES_EXTRATO).filter(m => m !== '00'))].sort();
+            const supervisores = [...new Set(globalData.map(d => d.SUPERVISOR).filter(Boolean))].sort();
+            const vendedores = [...new Set(globalData.map(d => d.VENDEDOR).filter(Boolean))].sort();
+
+            const selectMes = document.getElementById('mcat-filter-mes');
+            if(selectMes) {
+                selectMes.innerHTML = '<option value="">Todos (Acumulado)</option>';
+                meses.forEach(m => { 
+                    const option = document.createElement('option'); 
+                    option.value = m; option.textContent = nomeMeses[m] + ' / 2026'; 
+                    selectMes.appendChild(option); 
+                });
+                selectMes.removeEventListener('change', renderMetasCategorias);
+                selectMes.addEventListener('change', renderMetasCategorias);
+            }
+
+            createMcatCustomSelect('mcat-filter-supervisor', supervisores);
+            createMcatCustomSelect('mcat-filter-vendedor', vendedores);
+        }
+
+        const CATEGORIAS_OBRIGATORIAS = [
+            "GSA - MAC",
+            "GSA - REFRESKANT 1LT",
+            "GSA - REFRESKANT 5LTS",
+            "GSA - REFRESKANT 10LTS",
+            "GSA - SOPAO",
+            "GSA - TEMPERO EM PO",
+            "DONA RAOZ -", 
+            "GSA - TEMPERO EM POTE 1KG",
+            "GSA - TEMPERO EM POTE 300G",
+            "GSA - CONDIMENTOS",
+            "GSA - MISTURA PARA BOLO SANDELLA"
+        ];
+
+        function renderMetasCategorias() {
+            const tbody = document.getElementById('tbody-metas-categorias');
+            if (!tbody) return;
+
+            if (!window.metasGeraisData || Object.keys(window.metasGeraisData).length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>Aguardando o carregamento da aba METAS-GERAIS da planilha de METAS CATEGORIAS.</td></tr>`;
+                return;
+            }
+
+            const mesSelect = document.getElementById('mcat-filter-mes').value;
+            const sups = getCustomSelectValues('mcat-filter-supervisor');
+            const vends = getCustomSelectValues('mcat-filter-vendedor');
+
+            const mesEl = document.getElementById('mcat-filter-mes');
+            if(mesEl) {
+                if(mesSelect) mesEl.classList.add('has-filter');
+                else mesEl.classList.remove('has-filter');
+            }
+            ['mcat-filter-supervisor', 'mcat-filter-vendedor'].forEach(id => {
+                const el = document.querySelector(`#${id} .select-btn`);
+                const vals = getCustomSelectValues(id);
+                if (el) { if (vals.length > 0) el.classList.add('has-filter'); else el.classList.remove('has-filter'); }
+            });
+
+            let html = '';
+
+            CATEGORIAS_OBRIGATORIAS.forEach(cat => {
+                let metaCx = 0;
+                let metaPos = 0;
+
+                let searchKey = cat.toUpperCase().trim();
+                if (searchKey === "DONA RAOZ -") searchKey = "DONA RAIZ";
+                if (searchKey.endsWith("-")) searchKey = searchKey.replace("-", "").trim();
+
+                const metasKeys = Object.keys(window.metasGeraisData);
+                // Relacionamento flexível para tolerar as abreviações do Excel (Ex: "MIX BOLO I T. COMP. I CONDIM.")
+                let matchedCatKey = metasKeys.find(k => k.includes(searchKey) || searchKey.includes(k));
+                if (!matchedCatKey && searchKey.includes("MISTURA PARA BOLO")) matchedCatKey = metasKeys.find(k => k.includes("MIX BOLO"));
+                if (!matchedCatKey && searchKey.includes("CONDIMENTOS 300G")) matchedCatKey = metasKeys.find(k => k.includes("CONDIMENTOS"));
+                if (!matchedCatKey) matchedCatKey = searchKey;
+                
+                const catMetas = window.metasGeraisData[matchedCatKey] || {};
+
+                if (mesSelect) {
+                    if (catMetas[mesSelect]) {
+                        metaCx = catMetas[mesSelect].cx || 0;
+                        metaPos = catMetas[mesSelect].pos || 0;
+                    }
+                } else {
+                    for (let m in catMetas) {
+                        metaCx += catMetas[m].cx || 0;
+                        metaPos += catMetas[m].pos || 0;
+                    }
+                }
+
+                let realCx = 0;
+                let clisSet = new Set();
+                let totalRs = 0;
+
+                globalData.forEach(row => {
+                    if (mesSelect && row.MES_EXTRATO !== mesSelect) return;
+                    if (sups.length > 0 && !sups.includes(row.SUPERVISOR)) return;
+                    if (vends.length > 0 && !vends.includes(row.VENDEDOR)) return;
+
+                    const secaoStr = String(row.SECAO_NORM).toUpperCase();
+                    if (secaoStr.includes(searchKey)) {
+                        realCx += row.QTD_CX_NUM; // Cálulo Real CX
+                        if (row.CODCLI) clisSet.add(row.CODCLI);
+                        totalRs += row.VLFAT_NUM;
+                    }
+                });
+
+                const realPos = clisSet.size; // Cálulo Real POS (Contagem Distinct)
+
+                const percCx = metaCx > 0 ? (realCx / metaCx) * 100 : (realCx > 0 ? 100 : 0);
+                const percPos = metaPos > 0 ? (realPos / metaPos) * 100 : (realPos > 0 ? 100 : 0);
+
+                const badgeCx = (metaCx === 0 && realCx === 0) ? '<span class="text-muted">-</span>' : `<span class="badge bg-${percCx >= 100 ? 'success' : (percCx >= 80 ? 'warning text-dark' : 'danger')}">${percCx.toFixed(1)}%</span>`;
+                const badgePos = (metaPos === 0 && realPos === 0) ? '<span class="text-muted">-</span>' : `<span class="badge bg-${percPos >= 100 ? 'success' : (percPos >= 80 ? 'warning text-dark' : 'danger')}">${percPos.toFixed(1)}%</span>`;
+
+                html += `
+                    <tr>
+                        <td class="fw-bold align-middle ps-4">${cat}</td>
+                        <td class="text-end align-middle">${formatNumber(metaCx)}</td>
+                        <td class="text-end fw-bold text-dark align-middle">${formatNumber(realCx)}</td>
+                        <td class="text-center align-middle">${badgeCx}</td>
+                        <td class="text-end align-middle">${formatNumber(metaPos)}</td>
+                        <td class="text-end fw-bold text-dark align-middle">${formatNumber(realPos)}</td>
+                        <td class="text-center align-middle">${badgePos}</td>
+                        <td class="text-end fw-bold text-primary pe-4 align-middle">${formatCurrency(totalRs)}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function exportMetasCategoriasToCSV(filename) {
+            let csv = []; const rows = document.querySelectorAll("#table-metas-categorias tr");
             for (let i = 0; i < rows.length; i++) {
                 let row = [], cols = rows[i].querySelectorAll("td, th");
                 for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
