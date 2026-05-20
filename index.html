@@ -634,8 +634,9 @@
                                         <th style="cursor: pointer;" onclick="sortSupTable(0)">Supervisor <i class="fas fa-sort ms-1"></i></th>
                                         <th style="cursor: pointer;" onclick="sortSupTable(1)" class="text-end">Clientes Ativos <i class="fas fa-sort ms-1"></i></th>
                                         <th style="cursor: pointer;" onclick="sortSupTable(2)" class="text-end">Positivação Geral <i class="fas fa-sort ms-1"></i></th>
-                                        <th style="cursor: pointer;" onclick="sortSupTable(3)" class="text-end">Volume Geral <i class="fas fa-sort ms-1"></i></th>
-                                        <th style="cursor: pointer;" onclick="sortSupTable(4)" class="text-end pe-4">Sell Out Geral (R$) <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(3)" class="text-center">% Posit. <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(4)" class="text-end">Volume Geral <i class="fas fa-sort ms-1"></i></th>
+                                        <th style="cursor: pointer;" onclick="sortSupTable(5)" class="text-end pe-4">Sell Out Geral (R$) <i class="fas fa-sort ms-1"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-supervisores-body"></tbody>
@@ -2184,7 +2185,7 @@
 
         // ================= Tabela de Supervisores =================
         let tableSupData = [];
-        let sortSupDirections = [1, 1, 1, 1, 1];
+        let sortSupDirections = [1, 1, 1, 1, 1, 1];
         let currentTotSupClientesAtivos = 0, currentTotSupClientes = 0, currentTotSupVol = 0, currentTotSupSell = 0;
 
         function renderSupervisoresTable() {
@@ -2281,11 +2282,13 @@
                     // Calcular Positivação por Supervisor
                     const positSet = new Set();
                     filteredData.filter(r => r.SUPERVISOR === v.sup).forEach(r => { if(r.CODCLI) positSet.add(r.CODCLI); });
+                    const posSize = positSet.size;
                     
                     return {
                         sup: v.sup,
                         clientesAtivos: v.clientesAtivos,
-                        positivacao: positSet.size,
+                        positivacao: posSize,
+                        percPositivacao: v.clientesAtivos > 0 ? (posSize / v.clientesAtivos) * 100 : 0,
                         volume: v.volume,
                         sellout: v.sellout
                     };
@@ -2306,22 +2309,31 @@
                 else if (index === 1) posBadge = `<span class="badge bg-secondary px-2 py-1"><i class="fas fa-medal me-1"></i> 2º</span>`; 
                 else if (index === 2) posBadge = `<span class="badge px-2 py-1" style="background-color: #cd7f32;"><i class="fas fa-medal me-1"></i> 3º</span>`;
                 
+                let percBadgeClass = row.percPositivacao >= 100 ? 'success' : (row.percPositivacao >= 80 ? 'warning text-dark' : 'danger');
+                let percBadge = row.clientesAtivos === 0 ? '<span class="text-muted">-</span>' : `<span class="badge bg-${percBadgeClass}">${row.percPositivacao.toFixed(1)}%</span>`;
+
                 tr.innerHTML = `
                     <td class="ps-4 align-middle">${posBadge}</td>
                     <td class="align-middle fw-bold">${row.sup}</td>
                     <td class="text-end align-middle">${formatNumber(row.clientesAtivos)}</td>
                     <td class="text-end align-middle">${formatNumber(row.positivacao)}</td>
+                    <td class="text-center align-middle">${percBadge}</td>
                     <td class="text-end align-middle">${formatNumber(row.volume)}</td>
                     <td class="text-end fw-bold text-primary align-middle pe-4">${formatCurrency(row.sellout)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
+            const totPerc = currentTotSupClientesAtivos > 0 ? (currentTotSupClientes / currentTotSupClientesAtivos) * 100 : 0;
+            let totPercBadgeClass = totPerc >= 100 ? 'success' : (totPerc >= 80 ? 'warning text-dark' : 'danger');
+            let totPercBadge = currentTotSupClientesAtivos === 0 ? '<span class="text-muted">-</span>' : `<span class="badge bg-${totPercBadgeClass}">${totPerc.toFixed(1)}%</span>`;
+
             tfoot.innerHTML = `
                 <tr class="table-light fw-bold" style="font-size: 1.05rem;">
                     <td colspan="2" class="ps-4 text-end">TOTAL GERAL</td>
                     <td class="text-end">${formatNumber(currentTotSupClientesAtivos)}</td>
                     <td class="text-end">${formatNumber(currentTotSupClientes)}</td>
+                    <td class="text-center">${totPercBadge}</td>
                     <td class="text-end">${formatNumber(currentTotSupVol)}</td>
                     <td class="text-end text-primary pe-4">${formatCurrency(currentTotSupSell)}</td>
                 </tr>
@@ -2329,7 +2341,7 @@
         }
 
         function sortSupTable(columnIndex) {
-            const keys = ['sup', 'clientesAtivos', 'positivacao', 'volume', 'sellout'];
+            const keys = ['sup', 'clientesAtivos', 'positivacao', 'percPositivacao', 'volume', 'sellout'];
             const key = keys[columnIndex];
             const dir = sortSupDirections[columnIndex];
             
