@@ -1,0 +1,86 @@
+AJUSTE exclusivamente a lógica de metas do novo Card de Tabela Analítica de Categorias, sem alterar qualquer outra parte do sistema, código, layout, estilos, medidas ou componentes existentes.
+
+Nova regra obrigatória:
+
+* Quando houver filtro de:
+
+  * Supervisor
+  * Vendedor
+
+O sistema NÃO deve mais utilizar as metas da aba “METAS-GERAIS”.
+
+Nestes casos específicos, a origem das metas deve mudar automaticamente conforme o filtro aplicado.
+
+Meta Caixa:
+
+* Buscar exclusivamente na aba:
+
+  * “SUPERVISORES-CAIXAS”
+
+Lógica obrigatória:
+
+* Identificar o Supervisor ou Vendedor selecionado no filtro.
+* Procurar o nome correspondente nas linhas da aba “SUPERVISORES-CAIXAS”.
+* As categorias agora estão organizadas em colunas.
+* O sistema deve localizar automaticamente a coluna correspondente à categoria da tabela analítica.
+
+Exemplo:
+
+* Categoria:
+
+  * GSA - MAC
+* Procurar a coluna:
+
+  * GSA - MAC
+* Trazer o valor da meta correspondente ao Supervisor/Vendedor encontrado na linha.
+
+Meta Positivação:
+
+* Buscar exclusivamente na aba:
+
+  * “SUPERVISORES-POSITIVAÇÃO”
+
+Seguir exatamente a mesma lógica:
+
+* Identificar Supervisor ou Vendedor filtrado
+* Encontrar a linha correspondente
+* Identificar a coluna da categoria
+* Trazer o valor da meta de positivação correspondente
+
+Comportamento obrigatório:
+
+* Essa alteração deve acontecer EXCLUSIVAMENTE quando houver filtro de:
+
+  * Supervisor
+  * Vendedor
+
+Quando NÃO houver esses filtros:
+
+* Continuar utilizando normalmente:
+
+  * Planilha “METAS CATEGORIAS”
+  * Aba “METAS-GERAIS”
+
+Prioridade da lógica:
+
+1. Se houver filtro de Supervisor/Vendedor:
+
+   * Usar:
+
+     * SUPERVISORES-CAIXAS
+     * SUPERVISORES-POSITIVAÇÃO
+
+2. Se NÃO houver filtro:
+
+   * Continuar usando:
+
+     * METAS-GERAIS
+
+Regras obrigatórias:
+
+* NÃO alterar nenhuma outra lógica do sistema.
+* NÃO modificar layouts atuais.
+* NÃO refatorar componentes existentes.
+* NÃO alterar cálculos de venda, positivação ou filtros já existentes.
+* Fazer somente o ajuste da origem dinâmica das metas conforme o filtro de Supervisor ou Vendedor.
+* Manter compatibilidade total com o restante do dashboard.
