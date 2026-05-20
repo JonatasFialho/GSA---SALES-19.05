@@ -1330,7 +1330,7 @@
 
                 data.forEach(fileData => {
                     let upperName = fileData.name.toUpperCase();
-                    let isGlobalMetaFile = upperName.includes('META') || upperName.includes('FINANC') || upperName.includes('POSITIV') || upperName.includes('COBERTUR') || upperName.includes('CATEGORIA');
+                    let isGlobalMetaFile = upperName.includes('META') || upperName.includes('FINANC') || upperName.includes('POSITIV') || upperName.includes('COBERTUR') || upperName.includes('CATEGORIA') || upperName.includes('SUPERVISOR');
                     
                     if (fileData.type === 'excel' || upperName.endsWith('.XLSX') || upperName.endsWith('.XLS')) {
                         try {
@@ -1350,6 +1350,8 @@
                                 let currentType = isGlobalMetaFile ? 'meta_desconhecida' : 'vendas';
                                 
                                 if (upperSheetName.includes('FINANC')) currentType = 'financeiro';
+                                else if (upperSheetName.includes('SUPERVISORES-CAIXA') || upperSheetName.includes('SUPERVISORES CAIXA')) currentType = 'sup_cx';
+                                else if (upperSheetName.includes('SUPERVISORES-POSITIVA') || upperSheetName.includes('SUPERVISORES POSITIVA')) currentType = 'sup_pos';
                                 else if (upperSheetName.includes('POSITIVA') || upperSheetName.includes('COBERTURA')) currentType = 'positivacao';
                                 else if (upperSheetName.includes('METAS-GERAIS') || upperSheetName === 'METAS GERAIS') currentType = 'metas_gerais';
                                 else if (upperName.includes('CATEGORIA') || upperSheetName.includes('CATEGORIA')) currentType = 'comparativo';
@@ -1360,6 +1362,12 @@
                                 } else if (currentType === 'metas_gerais') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     extractMetasGerais(jsonMatrix);
+                                } else if (currentType === 'sup_cx') {
+                                    const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
+                                    extractMetasSupervisores(jsonMatrix, 'cx');
+                                } else if (currentType === 'sup_pos') {
+                                    const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
+                                    extractMetasSupervisores(jsonMatrix, 'pos');
                                 } else if (currentType !== 'vendas') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     processMetaFile(jsonMatrix, currentType);
@@ -1377,6 +1385,8 @@
                     } else {
                         let type = isGlobalMetaFile ? 'meta_desconhecida' : 'vendas';
                         if (upperName.includes('FINANC')) type = 'financeiro';
+                        else if (upperName.includes('SUPERVISORES-CAIXA') || upperName.includes('SUPERVISORES CAIXA')) type = 'sup_cx';
+                        else if (upperName.includes('SUPERVISORES-POSITIVA') || upperName.includes('SUPERVISORES POSITIVA')) type = 'sup_pos';
                         else if (upperName.includes('POSITIV') || upperName.includes('COBERTUR')) type = 'positivacao';
                         else if (upperName.includes('METAS-GERAIS') || upperName.includes('METAS GERAIS')) type = 'metas_gerais';
                         else if (upperName.includes('CATEGORIA')) type = 'comparativo';
@@ -1388,6 +1398,8 @@
                             complete: function(results) {
                                 if (type === 'comparativo') extractComparativo(results.data, true);
                                 else if (type === 'metas_gerais') extractMetasGerais(results.data);
+                                else if (type === 'sup_cx') extractMetasSupervisores(results.data, 'cx');
+                                else if (type === 'sup_pos') extractMetasSupervisores(results.data, 'pos');
                                 else if (type !== 'vendas') processMetaFile(results.data, type);
                                 else globalData = globalData.concat(results.data.map(r => processRowData(r, fileData.name)));
                                 
@@ -1430,11 +1442,13 @@
                 const file = allowedFiles[i];
                 let upperName = file.name.toUpperCase();
                 
-                let isGlobalMetaFile = upperName.includes('META') || upperName.includes('FINANC') || upperName.includes('POSITIV') || upperName.includes('COBERTUR') || upperName.includes('CATEGORIA');
+                let isGlobalMetaFile = upperName.includes('META') || upperName.includes('FINANC') || upperName.includes('POSITIV') || upperName.includes('COBERTUR') || upperName.includes('CATEGORIA') || upperName.includes('SUPERVISOR');
 
                 if (file.name.toLowerCase().endsWith('.csv')) {
                     let type = isGlobalMetaFile ? 'meta_desconhecida' : 'vendas';
                     if (upperName.includes('FINANC')) type = 'financeiro';
+                    else if (upperName.includes('SUPERVISORES-CAIXA') || upperName.includes('SUPERVISORES CAIXA')) type = 'sup_cx';
+                    else if (upperName.includes('SUPERVISORES-POSITIVA') || upperName.includes('SUPERVISORES POSITIVA')) type = 'sup_pos';
                     else if (upperName.includes('POSITIV') || upperName.includes('COBERTUR')) type = 'positivacao';
                     else if (upperName.includes('METAS-GERAIS') || upperName.includes('METAS GERAIS')) type = 'metas_gerais';
                     else if (upperName.includes('CATEGORIA')) type = 'comparativo';
@@ -1447,6 +1461,8 @@
                         complete: function(results) {
                             if (type === 'comparativo') extractComparativo(results.data, true);
                             else if (type === 'metas_gerais') extractMetasGerais(results.data);
+                            else if (type === 'sup_cx') extractMetasSupervisores(results.data, 'cx');
+                            else if (type === 'sup_pos') extractMetasSupervisores(results.data, 'pos');
                             else if (type !== 'vendas') processMetaFile(results.data, type);
                             else globalData = globalData.concat(results.data.map(r => processRowData(r, file.name)));
                             filesProcessed++;
@@ -1471,6 +1487,8 @@
                                 let currentType = isGlobalMetaFile ? 'meta_desconhecida' : 'vendas';
                                 
                                 if (upperSheetName.includes('FINANC')) currentType = 'financeiro';
+                                else if (upperSheetName.includes('SUPERVISORES-CAIXA') || upperSheetName.includes('SUPERVISORES CAIXA')) currentType = 'sup_cx';
+                                else if (upperSheetName.includes('SUPERVISORES-POSITIVA') || upperSheetName.includes('SUPERVISORES POSITIVA')) currentType = 'sup_pos';
                                 else if (upperSheetName.includes('POSITIVA') || upperSheetName.includes('COBERTURA')) currentType = 'positivacao';
                                 else if (upperSheetName.includes('METAS-GERAIS') || upperSheetName === 'METAS GERAIS') currentType = 'metas_gerais';
                                 else if (upperName.includes('CATEGORIA') || upperSheetName.includes('CATEGORIA')) currentType = 'comparativo';
@@ -1481,6 +1499,12 @@
                                 } else if (currentType === 'metas_gerais') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     extractMetasGerais(jsonMatrix);
+                                } else if (currentType === 'sup_cx') {
+                                    const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
+                                    extractMetasSupervisores(jsonMatrix, 'cx');
+                                } else if (currentType === 'sup_pos') {
+                                    const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
+                                    extractMetasSupervisores(jsonMatrix, 'pos');
                                 } else if (currentType !== 'vendas') {
                                     const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ''});
                                     processMetaFile(jsonMatrix, currentType);
@@ -3077,6 +3101,89 @@
         // =========================================================================================
         
         window.metasGeraisData = {};
+        window.metasSupData = { cx: {}, pos: {} };
+
+        function extractMetasSupervisores(rows, tipo) {
+            let monthRowIdx = -1;
+            let catRowIdx = -1;
+            
+            // Procurar a linha que tem os meses
+            for(let i=0; i<Math.min(rows.length, 15); i++) {
+                let r = rows[i] || [];
+                let str = r.map(c => String(c).toUpperCase().trim());
+                if (str.includes('JANEIRO') || str.some(s => s.includes('JANEIRO'))) {
+                    monthRowIdx = i;
+                    catRowIdx = i + 1;
+                    break;
+                }
+            }
+            
+            if (monthRowIdx === -1) return;
+
+            let monthRow = rows[monthRowIdx] || [];
+            let catRow = rows[catRowIdx] || [];
+            
+            let nameColIdx = 1; // Coluna B como fallback
+            for(let c=0; c<10; c++) {
+                let val1 = String(monthRow[c] || '').toUpperCase().trim();
+                let val2 = String(catRow[c] || '').toUpperCase().trim();
+                if (val1.includes('SUPERVISOR') || val1.includes('VENDEDOR') || val2.includes('SUPERVISOR') || val2.includes('VENDEDOR')) {
+                    nameColIdx = c;
+                    break;
+                }
+            }
+
+            let currentMonth = '';
+            let colMapping = {};
+            
+            const validMonths = ['JANEIRO','FEVEREIRO','MARÇO','MARCO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+            const monthMapExt = {
+                'JANEIRO':'01', 'FEVEREIRO':'02', 'MARÇO':'03', 'MARCO':'03', 'ABRIL':'04', 
+                'MAIO':'05', 'JUNHO':'06', 'JULHO':'07', 'AGOSTO':'08', 
+                'SETEMBRO':'09', 'OUTUBRO':'10', 'NOVEMBRO':'11', 'DEZEMBRO':'12'
+            };
+
+            for (let c = 0; c < Math.max(monthRow.length, catRow.length); c++) {
+                let mVal = String(monthRow[c] || '').toUpperCase().trim();
+                
+                // Lógica de herança para células mescladas do Excel
+                if (mVal !== '') {
+                    let matchedMonth = validMonths.find(vm => mVal.includes(vm));
+                    if (matchedMonth) {
+                        currentMonth = monthMapExt[matchedMonth];
+                    } else {
+                        currentMonth = ''; // Reset se for outra palavra na linha 1
+                    }
+                }
+                
+                let catVal = String(catRow[c] || '').toUpperCase().trim();
+                if (currentMonth && catVal !== '') {
+                    colMapping[c] = { mes: currentMonth, cat: catVal };
+                }
+            }
+
+            for(let i = catRowIdx + 1; i < rows.length; i++) {
+                let r = rows[i] || [];
+                if (r.length === 0) continue;
+                
+                let name = String(r[nameColIdx] || '').toUpperCase().trim();
+                if (!name || name === '') continue;
+
+                if (!window.metasSupData[tipo][name]) {
+                    window.metasSupData[tipo][name] = {};
+                }
+
+                for (let c in colMapping) {
+                    let colInfo = colMapping[c];
+                    let val = parseAndCleanNumComp(r[c]);
+                    
+                    if (!window.metasSupData[tipo][name][colInfo.mes]) {
+                        window.metasSupData[tipo][name][colInfo.mes] = {};
+                    }
+                    window.metasSupData[tipo][name][colInfo.mes][colInfo.cat] = val;
+                }
+            }
+        }
 
         function extractMetasGerais(rows) {
             let headerIdx = -1;
@@ -3890,6 +3997,8 @@
             const mesSelect = document.getElementById('mcat-filter-mes').value;
             const sups = getCustomSelectValues('mcat-filter-supervisor');
             const vends = getCustomSelectValues('mcat-filter-vendedor');
+            const hasPessoaFilter = sups.length > 0 || vends.length > 0;
+            const namesToLookup = [...sups, ...vends].map(n => String(n).toUpperCase().trim());
 
             const mesEl = document.getElementById('mcat-filter-mes');
             if(mesEl) {
@@ -3912,24 +4021,63 @@
                 if (searchKey === "DONA RAOZ -") searchKey = "DONA RAIZ";
                 if (searchKey.endsWith("-")) searchKey = searchKey.replace("-", "").trim();
 
-                const metasKeys = Object.keys(window.metasGeraisData);
-                // Relacionamento flexível para tolerar as abreviações do Excel (Ex: "MIX BOLO I T. COMP. I CONDIM.")
-                let matchedCatKey = metasKeys.find(k => k.includes(searchKey) || searchKey.includes(k));
-                if (!matchedCatKey && searchKey.includes("MISTURA PARA BOLO")) matchedCatKey = metasKeys.find(k => k.includes("MIX BOLO"));
-                if (!matchedCatKey && searchKey.includes("CONDIMENTOS 300G")) matchedCatKey = metasKeys.find(k => k.includes("CONDIMENTOS"));
-                if (!matchedCatKey) matchedCatKey = searchKey;
-                
-                const catMetas = window.metasGeraisData[matchedCatKey] || {};
+                if (hasPessoaFilter) {
+                    // --- NOVA LÓGICA: Buscar metas diretamente das abas SUPERVISORES-CAIXAS e SUPERVISORES-POSITIVAÇÃO ---
+                    namesToLookup.forEach(name => {
+                        let matchedNameCx = Object.keys(window.metasSupData.cx).find(k => k.includes(name) || name.includes(k));
+                        let matchedNamePos = Object.keys(window.metasSupData.pos).find(k => k.includes(name) || name.includes(k));
+                        
+                        let cxData = matchedNameCx ? window.metasSupData.cx[matchedNameCx] : {};
+                        let posData = matchedNamePos ? window.metasSupData.pos[matchedNamePos] : {};
 
-                if (mesSelect) {
-                    if (catMetas[mesSelect]) {
-                        metaCx = catMetas[mesSelect].cx || 0;
-                        metaPos = catMetas[mesSelect].pos || 0;
-                    }
+                        let mesesToIterate = mesSelect ? [mesSelect] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
+
+                        mesesToIterate.forEach(m => {
+                            if (cxData[m]) {
+                                let metasKeysCx = Object.keys(cxData[m]);
+                                let matchedCatKeyCx = metasKeysCx.find(k => k.includes(searchKey) || searchKey.includes(k));
+                                if (!matchedCatKeyCx && searchKey.includes("MISTURA PARA BOLO")) matchedCatKeyCx = metasKeysCx.find(k => k.includes("MIX BOLO"));
+                                if (!matchedCatKeyCx && searchKey.includes("CONDIMENTOS")) matchedCatKeyCx = metasKeysCx.find(k => k.includes("CONDIM"));
+                                
+                                if (matchedCatKeyCx && cxData[m][matchedCatKeyCx]) {
+                                    metaCx += cxData[m][matchedCatKeyCx];
+                                }
+                            }
+
+                            if (posData[m]) {
+                                let metasKeysPos = Object.keys(posData[m]);
+                                let matchedCatKeyPos = metasKeysPos.find(k => k.includes(searchKey) || searchKey.includes(k));
+                                if (!matchedCatKeyPos && searchKey.includes("MISTURA PARA BOLO")) matchedCatKeyPos = metasKeysPos.find(k => k.includes("MIX BOLO"));
+                                if (!matchedCatKeyPos && searchKey.includes("CONDIMENTOS")) matchedCatKeyPos = metasKeysPos.find(k => k.includes("CONDIM"));
+                                
+                                if (matchedCatKeyPos && posData[m][matchedCatKeyPos]) {
+                                    metaPos += posData[m][matchedCatKeyPos];
+                                }
+                            }
+                        });
+                    });
+
                 } else {
-                    for (let m in catMetas) {
-                        metaCx += catMetas[m].cx || 0;
-                        metaPos += catMetas[m].pos || 0;
+                    // --- LÓGICA ANTIGA: Continuar usando METAS-GERAIS ---
+                    const metasKeys = Object.keys(window.metasGeraisData);
+                    // Relacionamento flexível para tolerar as abreviações do Excel (Ex: "MIX BOLO I T. COMP. I CONDIM.")
+                    let matchedCatKey = metasKeys.find(k => k.includes(searchKey) || searchKey.includes(k));
+                    if (!matchedCatKey && searchKey.includes("MISTURA PARA BOLO")) matchedCatKey = metasKeys.find(k => k.includes("MIX BOLO"));
+                    if (!matchedCatKey && searchKey.includes("CONDIMENTOS 300G")) matchedCatKey = metasKeys.find(k => k.includes("CONDIMENTOS"));
+                    if (!matchedCatKey) matchedCatKey = searchKey;
+                    
+                    const catMetas = window.metasGeraisData[matchedCatKey] || {};
+
+                    if (mesSelect) {
+                        if (catMetas[mesSelect]) {
+                            metaCx = catMetas[mesSelect].cx || 0;
+                            metaPos = catMetas[mesSelect].pos || 0;
+                        }
+                    } else {
+                        for (let m in catMetas) {
+                            metaCx += catMetas[m].cx || 0;
+                            metaPos += catMetas[m].pos || 0;
+                        }
                     }
                 }
 
