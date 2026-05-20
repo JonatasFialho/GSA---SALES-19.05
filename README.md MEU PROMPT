@@ -25,9 +25,143 @@ GSA - CONDIMENTOS 300G
 GSA - MISTURA PARA BOLO SANDELLA
 
 
+OBS. NAO ALTERE NENHUMA OUTRA PARTE DO CODIGO, NÃO REFATORE, NAO FAÇA NADA ALEM DESSA SOLICITAÇAO QUE PEDI.
 
 
-ACIMA FOI MEU PROMPT ORIGINAL - ABAIXO VAI SER O PROMPT MELHORADO COM A IA
+
+<<<<<<<------------------------------------------------- ACIMA FOI MEU PROMPT ORIGINAL - ABAIXO VAI SER O PROMPT MELHORADO COM A IA --------------------------------------------------------------------------------->>>>>>>
+
+
+
+
+CRIE exclusivamente um novo Card de Tabela Analítica para Categorias, sem alterar, remover, refatorar ou modificar qualquer outra parte do código, estrutura, layout, componentes, estilos ou lógicas já existentes no sistema.
+
+Objetivo:
+
+* Criar uma tabela analítica de desempenho por categoria, utilizando os dados da planilha de vendas e das metas da planilha “Metas Categorias”.
+
+Estrutura obrigatória da tabela:
+A tabela deve conter as seguintes colunas:
+
+* Categoria
+* Meta CX
+* Real CX
+* % CX
+* Meta POS
+* Real POS
+* % POS
+* Total R$
+
+Categorias obrigatórias da tabela:
+
+* GSA - MAC
+* GSA - REFRESKANT 1LT
+* GSA - REFRESKANT 5LTS
+* GSA - REFRESKANT 10LTS
+* GSA - SOPAO
+* GSA - TEMPERO EM PO
+* DONA RAOZ -
+* GSA - TEMPERO EM POTE 1KG
+* GSA - CONDIMENTOS 300G
+* GSA - MISTURA PARA BOLO SANDELLA
+
+Lógica obrigatória de identificação das categorias:
+
+* O sistema deve acessar a planilha de vendas.
+* Procurar na coluna:
+
+  * “SECAO”
+* Identificar os registros que contenham exatamente o padrão da categoria.
+
+Exemplo:
+
+* Para “GSA - MAC”
+
+  * Procurar registros da coluna SECAO contendo “GSA - MAC”
+* Para “GSA - SOPAO”
+
+  * Procurar registros da coluna SECAO contendo “GSA - SOPAO”
+
+Cálculo de Real CX:
+
+* Após identificar a categoria:
+
+  * Somar os valores da coluna:
+
+    * QT_CX
+
+Cálculo de Real POS:
+
+* Após identificar a categoria:
+
+  * Contar DISTINCT os clientes da coluna:
+
+    * CODCLI
+* A contagem deve considerar apenas clientes atendidos/vendidos da categoria.
+
+Cálculo de Total R$:
+
+* Somar o valor financeiro vendido da categoria conforme a lógica já existente no sistema de vendas.
+
+Origem das metas:
+
+* Buscar as metas na planilha:
+
+  * “METAS CATEGORIAS”
+* Aba:
+
+  * “METAS-GERAIS”
+
+Lógica obrigatória para localizar as metas:
+
+* O sistema deve:
+
+  1. Identificar a linha correspondente à categoria
+  2. Identificar automaticamente o mês selecionado
+  3. Buscar as colunas corretas conforme o padrão:
+
+Exemplo:
+
+* “CX - JANEIRO” → Meta Caixa Janeiro
+* “POS - JANEIRO” → Meta Positivação Janeiro
+
+O mesmo padrão deve funcionar dinamicamente para todos os meses:
+
+* Janeiro
+* Fevereiro
+* Março
+* Abril
+* Maio
+* Junho
+* Julho
+* Agosto
+* Setembro
+* Outubro
+* Novembro
+* Dezembro
+
+Cálculo dos percentuais:
+
+* % CX =
+  Real CX ÷ Meta CX
+
+* % POS =
+  Real POS ÷ Meta POS
+
+Comportamento obrigatório:
+
+* A tabela deve respeitar todos os filtros já existentes no dashboard.
+* As metas devem mudar automaticamente conforme o mês filtrado.
+* Os resultados devem atualizar dinamicamente conforme os filtros aplicados.
+
+Regras obrigatórias:
+
+* NÃO alterar nenhuma outra parte do código.
+* NÃO refatorar estruturas existentes.
+* NÃO modificar layouts atuais.
+* NÃO alterar outras tabelas, cards, medidas ou componentes.
+* Fazer exclusivamente a implementação deste novo Card de Tabela Analítica de Categorias.
+* Manter o padrão visual já existente no projeto.
 
 
 
