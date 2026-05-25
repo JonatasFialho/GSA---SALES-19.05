@@ -1284,8 +1284,12 @@
             // Priorizar a coluna "CA" conforme solicitado para a planilha 8108
             let qtCliAtvStr = String(normRow['CA'] || normRow['QTCLIATV'] || normRow['QT_CLI_ATV'] || normRow['CC'] || '0').replace(/\./g, '').replace(',', '.');
             let qtCliAtvNum = parseFloat(qtCliAtvStr) || 0;
-            let supervisor = String(normRow['SUPERVISOR'] || normRow['COORDENADOR'] || normRow['GERENTE'] || 'N/I').replace(/\uFFFD/g, '').trim();
-            let vendedor = String(normRow['VENDEDOR'] || normRow['RCA'] || normRow['REP'] || 'N/I').replace(/\uFFFD/g, '').trim();
+            let supervisorRaw = String(normRow['SUPERVISOR'] || normRow['COORDENADOR'] || normRow['GERENTE'] || 'N/I').replace(/\uFFFD/g, '').trim();
+            let vendedorRaw = String(normRow['VENDEDOR'] || normRow['RCA'] || normRow['REP'] || 'N/I').replace(/\uFFFD/g, '').trim();
+            
+            // Normalização para garantir match com as metas (remove acentos e padroniza)
+            let supervisor = supervisorRaw.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/^\d+\s+/, '').trim();
+            let vendedor = vendedorRaw.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/^\d+\s+/, '').trim();
             let cidade = String(normRow['CIDADE'] || normRow['MUNICIPIO'] || normRow['PRACA'] || 'N/I').replace(/\uFFFD/g, '').trim();
             let prod = String(normRow['DESCRICAO'] || normRow['PRODUTO'] || normRow['NOME_PRODUTO'] || normRow['CODPROD'] || normRow['SKU'] || 'Produto Não Identificado').replace(/\uFFFD/g, '').trim();
 
@@ -3108,7 +3112,7 @@
             let catRowIdx = -1;
             
             // Procurar a linha que tem os meses
-            for(let i=0; i<Math.min(rows.length, 15); i++) {
+            for(let i=0; i<Math.min(rows.length, 30); i++) {
                 let r = rows[i] || [];
                 let str = r.map(c => String(c).toUpperCase().trim());
                 if (str.includes('JANEIRO') || str.some(s => s.includes('JANEIRO'))) {
@@ -3124,12 +3128,18 @@
             let catRow = rows[catRowIdx] || [];
             
             let nameColIdx = 1; // Coluna B como fallback
-            for(let c=0; c<10; c++) {
+            let supColIdx = -1; // Coluna específica de Supervisor (se existir)
+            for(let c=0; c<15; c++) {
                 let val1 = String(monthRow[c] || '').toUpperCase().trim();
                 let val2 = String(catRow[c] || '').toUpperCase().trim();
-                if (val1.includes('SUPERVISOR') || val1.includes('VENDEDOR') || val2.includes('SUPERVISOR') || val2.includes('VENDEDOR')) {
+                
+                // Procura especificamente pela nova coluna "SUPERVISOR"
+                if (val1 === 'SUPERVISOR' || val2 === 'SUPERVISOR') {
+                    supColIdx = c;
+                }
+                
+                if (val1.includes('SUPERVISOR / VENDEDOR') || val2.includes('SUPERVISOR / VENDEDOR')) {
                     nameColIdx = c;
-                    break;
                 }
             }
 
@@ -3151,13 +3161,21 @@
                     let matchedMonth = validMonths.find(vm => mVal.includes(vm));
                     if (matchedMonth) {
                         currentMonth = monthMapExt[matchedMonth];
-                    } else {
-                        currentMonth = ''; // Reset se for outra palavra na linha 1
+                    } else if (mVal !== '0' && mVal !== '') {
+                        // Se não for um mês válido, não reseta imediatamente para permitir herança se a célula estiver vazia
+                        // Mas se for um texto novo que não é mês, para de herdar
+                        currentMonth = ''; 
                     }
                 }
                 
                 let catVal = String(catRow[c] || '').toUpperCase().trim();
-                if (currentMonth && catVal !== '') {
+                // Se a célula estiver vazia mas tivermos um mês, tenta olhar para a linha acima (monthRow)
+                // No Excel enviado, "FINANCEIRO" e "TT CAIXA GERAL" estão na mesma linha que as categorias
+                if (catVal === '' || catVal === '0') {
+                    catVal = String(monthRow[c] || '').toUpperCase().trim();
+                }
+
+                if (currentMonth && catVal !== '' && catVal !== '0' && !validMonths.includes(catVal)) {
                     colMapping[c] = { mes: currentMonth, cat: catVal };
                 }
             }
@@ -3166,8 +3184,30 @@
                 let r = rows[i] || [];
                 if (r.length === 0) continue;
                 
-                let name = String(r[nameColIdx] || '').toUpperCase().trim();
-                if (!name || name === '') continue;
+                let rawName = '';
+                
+                // Se o usuário adicionou a coluna SUPERVISOR, usamos ela como chave principal
+                if (supColIdx !== -1) {
+                    rawName = String(r[supColIdx] || '').trim();
+                }
+                
+                // Fallback para a coluna SUPERVISOR / VENDEDOR
+                if (!rawName || rawName === '' || rawName === '0') {
+                    rawName = String(r[nameColIdx] || '').trim();
+                }
+
+                // Fallback para a coluna COD (para linhas de subtotal)
+                if ((!rawName || rawName === '' || rawName === '0') && nameColIdx > 0) {
+                    rawName = String(r[nameColIdx - 1] || '').trim();
+                }
+
+                if (!rawName || rawName === '' || rawName === '0' || rawName.toUpperCase().includes('VENDEDORES')) continue;
+                
+                // Normaliza o nome para evitar problemas com acentos ou caracteres especiais
+                let name = rawName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                // Limpeza adicional para nomes que começam com números (como "9 NAZARENO")
+                name = name.replace(/^\d+\s+/, '').trim();
 
                 if (!window.metasSupData[tipo][name]) {
                     window.metasSupData[tipo][name] = {};
@@ -3998,7 +4038,11 @@
             const sups = getCustomSelectValues('mcat-filter-supervisor');
             const vends = getCustomSelectValues('mcat-filter-vendedor');
             const hasPessoaFilter = sups.length > 0 || vends.length > 0;
-            const namesToLookup = [...sups, ...vends].map(n => String(n).toUpperCase().trim());
+
+            // Obtém o filtro global de Tipo de Venda da aba Visão Geral
+            const filterTipoVendaEl = document.getElementById('filter-tipo-venda');
+            const tipoVendaGlobal = filterTipoVendaEl ? filterTipoVendaEl.value : '';
+            const namesToLookup = [...sups, ...vends].map(n => String(n).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/^\d+\s+/, '').trim());
 
             const mesEl = document.getElementById('mcat-filter-mes');
             if(mesEl) {
@@ -4024,37 +4068,39 @@
                 if (hasPessoaFilter) {
                     // --- NOVA LÓGICA: Buscar metas diretamente das abas SUPERVISORES-CAIXAS e SUPERVISORES-POSITIVAÇÃO ---
                     namesToLookup.forEach(name => {
-                        let matchedNameCx = Object.keys(window.metasSupData.cx).find(k => k.includes(name) || name.includes(k));
-                        let matchedNamePos = Object.keys(window.metasSupData.pos).find(k => k.includes(name) || name.includes(k));
+                        // Busca todas as chaves que correspondem ao filtro (pode ser o nome do supervisor em várias linhas)
+                        let matchedKeysCx = Object.keys(window.metasSupData.cx).filter(k => k === name || k.includes(name) || name.includes(k));
+                        let matchedKeysPos = Object.keys(window.metasSupData.pos).filter(k => k === name || k.includes(name) || name.includes(k));
                         
-                        let cxData = matchedNameCx ? window.metasSupData.cx[matchedNameCx] : {};
-                        let posData = matchedNamePos ? window.metasSupData.pos[matchedNamePos] : {};
-
-                        let mesesToIterate = mesSelect ? [mesSelect] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
-
-                        mesesToIterate.forEach(m => {
-                            if (cxData[m]) {
-                                let metasKeysCx = Object.keys(cxData[m]);
-                                let matchedCatKeyCx = metasKeysCx.find(k => k.includes(searchKey) || searchKey.includes(k));
-                                if (!matchedCatKeyCx && searchKey.includes("MISTURA PARA BOLO")) matchedCatKeyCx = metasKeysCx.find(k => k.includes("MIX BOLO"));
-                                if (!matchedCatKeyCx && searchKey.includes("CONDIMENTOS")) matchedCatKeyCx = metasKeysCx.find(k => k.includes("CONDIM"));
-                                
-                                if (matchedCatKeyCx && cxData[m][matchedCatKeyCx]) {
-                                    metaCx += cxData[m][matchedCatKeyCx];
+                        matchedKeysCx.forEach(mKey => {
+                            let cxData = window.metasSupData.cx[mKey] || {};
+                            let mesesToIterate = mesSelect ? [mesSelect] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
+                            mesesToIterate.forEach(m => {
+                                if (cxData[m]) {
+                                    let metasKeysCx = Object.keys(cxData[m]);
+                                    let matchedCatKeyCx = metasKeysCx.find(k => k.includes(searchKey) || searchKey.includes(k));
+                                    if (!matchedCatKeyCx && searchKey.includes("MISTURA PARA BOLO")) matchedCatKeyCx = metasKeysCx.find(k => k.includes("MIX BOLO"));
+                                    if (!matchedCatKeyCx && searchKey.includes("CONDIMENTOS")) matchedCatKeyCx = metasKeysCx.find(k => k.includes("CONDIM"));
+                                    if (matchedCatKeyCx && cxData[m][matchedCatKeyCx]) metaCx += cxData[m][matchedCatKeyCx];
                                 }
-                            }
-
-                            if (posData[m]) {
-                                let metasKeysPos = Object.keys(posData[m]);
-                                let matchedCatKeyPos = metasKeysPos.find(k => k.includes(searchKey) || searchKey.includes(k));
-                                if (!matchedCatKeyPos && searchKey.includes("MISTURA PARA BOLO")) matchedCatKeyPos = metasKeysPos.find(k => k.includes("MIX BOLO"));
-                                if (!matchedCatKeyPos && searchKey.includes("CONDIMENTOS")) matchedCatKeyPos = metasKeysPos.find(k => k.includes("CONDIM"));
-                                
-                                if (matchedCatKeyPos && posData[m][matchedCatKeyPos]) {
-                                    metaPos += posData[m][matchedCatKeyPos];
-                                }
-                            }
+                            });
                         });
+
+                        matchedKeysPos.forEach(mKey => {
+                            let posData = window.metasSupData.pos[mKey] || {};
+                            let mesesToIterate = mesSelect ? [mesSelect] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
+                            mesesToIterate.forEach(m => {
+                                if (posData[m]) {
+                                    let metasKeysPos = Object.keys(posData[m]);
+                                    let matchedCatKeyPos = metasKeysPos.find(k => k.includes(searchKey) || searchKey.includes(k));
+                                    if (!matchedCatKeyPos && searchKey.includes("MISTURA PARA BOLO")) matchedCatKeyPos = metasKeysPos.find(k => k.includes("MIX BOLO"));
+                                    if (!matchedCatKeyPos && searchKey.includes("CONDIMENTOS")) matchedCatKeyPos = metasKeysPos.find(k => k.includes("CONDIM"));
+                                    if (matchedCatKeyPos && posData[m][matchedCatKeyPos]) metaPos += posData[m][matchedCatKeyPos];
+                                }
+                            });
+                        });
+
+
                     });
 
                 } else {
@@ -4087,6 +4133,7 @@
 
                 globalData.forEach(row => {
                     if (mesSelect && row.MES_EXTRATO !== mesSelect) return;
+                    if (tipoVendaGlobal && row.TIPO_VENDA !== tipoVendaGlobal) return;
                     if (sups.length > 0 && !sups.includes(row.SUPERVISOR)) return;
                     if (vends.length > 0 && !vends.includes(row.VENDEDOR)) return;
 
